@@ -26,21 +26,23 @@
 Dispatching a live delivery fleet generalizes the classic **Traveling Salesperson Problem (TSP)** into the **Capacitated Vehicle Routing Problem with Time Windows (CVRPTW)**:
 
 - **TSP** looks for a single minimum-cost Hamiltonian cycle visiting every stop once.
-- **mTSP / VRP** partitions those stops across $|K|$ vehicles anchored at a hub (depot $0$), forming disjoint **"petals"**—one closed loop per vehicle.
-- **CVRPTW** layers operational reality onto every petal: asymmetric street-network travel times $t_{ij}$ derived from OpenStreetMap / OSRM driving matrices, finite vehicle payload limits $Q_k$, delivery time windows $[e_i, l_i]$, and pickup-before-dropoff order precedence.
+- **mTSP / VRP** partitions those stops across $`|K|`$ vehicles anchored at a hub (depot $`0`$), forming disjoint **"petals"**—one closed loop per vehicle.
+- **CVRPTW** layers operational reality onto every petal: asymmetric street-network travel times $`t_{ij}`$ derived from OpenStreetMap / OSRM driving matrices, finite vehicle payload limits $`Q_k`$, delivery time windows $`[e_i, l_i]`$, and pickup-before-dropoff order precedence.
 
-Given a directed road graph $G = (V, A)$ with hub $0$, stop set $N = V \setminus \{0\}$, and fleet $K$, let $x_{ijk} \in \{0, 1\}$ indicate whether vehicle $k$ traverses arc $(i, j)$, with arrival time $a_{ik}$, early waiting $w_{ik} = \max(0, e_i - a_{ik})$, and lateness $\delta_{ik} = \max(0, a_{ik} + w_{ik} - l_i)$:
+Given a directed road graph $`G = (V, A)`$ with hub $`0`$, stop set $`N = V \setminus \{0\}`$, and fleet $`K`$, let $`x_{ijk} \in \{0, 1\}`$ indicate whether vehicle $`k`$ traverses arc $`(i, j)`$, with arrival time $`a_{ik}`$, early waiting $`w_{ik} = \max(0, e_i - a_{ik})`$ and lateness $`\delta_{ik} = \max(0, a_{ik} + w_{ik} - l_i)`$:
 
-$$\min \sum_{k \in K} \left( \sum_{(i,j) \in A} (t_{ij} + \alpha\, d_{ij})\, x_{ijk} + \sum_{i \in N} (\beta\, w_{ik} + \lambda\, \delta_{ik}) + \lambda\, \delta^{\text{shift}}_k \right)$$
+$$
+\min \sum_{k \in K} \left( \sum_{(i,j) \in A} (t_{ij} + \alpha\, d_{ij})\, x_{ijk} + \sum_{i \in N} (\beta\, w_{ik} + \lambda\, \delta_{ik}) + \lambda\, \delta^{\text{shift}}_k \right)
+$$
 
 subject to:
-1. **Single visit:** Every stop is served exactly once: $\sum_{k \in K}\sum_{j \in V} x_{ijk} = 1 \;\;\forall i \in N$.
-2. **Hamiltonian petals (flow conservation):** Each active vehicle departs and returns to the hub ($\sum_j x_{0jk} = \sum_i x_{i0k} \le 1$) and exits every stop it enters ($\sum_i x_{ihk} = \sum_j x_{hjk}$).
-3. **Capacity:** Cumulative onboard load never exceeds $Q_k$ along vehicle $k$'s route.
-4. **Time propagation:** Whenever $x_{ijk} = 1$, arrival satisfies $a_{jk} \ge a_{ik} + w_{ik} + s_i + t_{ij}$ (with service time $s_i$ and shift end $T_k^{\max}$).
-5. **Pickup–dropoff precedence:** Paired stops $(p, d)$ must lie on the same vehicle petal with $a_{pk} < a_{dk}$.
+1. **Single visit:** Every stop is served exactly once: $`\sum_{k \in K}\sum_{j \in V} x_{ijk} = 1 \;\;\forall i \in N`$.
+2. **Hamiltonian petals (flow conservation):** Each active vehicle departs and returns to the hub ($`\sum_j x_{0jk} = \sum_i x_{i0k} \le 1`$) and exits every stop it enters ($`\sum_i x_{ihk} = \sum_j x_{hjk}`$).
+3. **Capacity:** Cumulative onboard load never exceeds $`Q_k`$ along vehicle $`k`$'s route.
+4. **Time propagation:** Whenever $`x_{ijk} = 1`$, arrival satisfies $`a_{jk} \ge a_{ik} + w_{ik} + s_i + t_{ij}`$ (with service time $`s_i`$ and shift end $`T_k^{\max}`$).
+5. **Pickup–dropoff precedence:** Paired stops $`(p, d)`$ must lie on the same vehicle petal with $`a_{pk} < a_{dk}`$.
 
-Because CVRPTW is **NP-hard**, exact MILP solvers stall as stop counts grow and conditions shift mid-shift. ChronosRoute solves re-dispatch batches within a sub-500 ms budget using **Adaptive Large Neighborhood Search (ALNS)** (Shaw/Worst/Random destroy, Regret-2/Greedy repair, 2-Opt/Or-Opt local search, and Simulated Annealing) paired with $O(1)$ Savelsbergh backward-pass time-window slack checks—implemented both in the C++20 gRPC solver and locally in the interactive TypeScript simulation.
+Because CVRPTW is **NP-hard**, exact MILP solvers stall as stop counts grow and conditions shift mid-shift. ChronosRoute solves re-dispatch batches within a sub-500 ms budget using **Adaptive Large Neighborhood Search (ALNS)** (Shaw/Worst/Random destroy, Regret-2/Greedy repair, 2-Opt/Or-Opt local search, and Simulated Annealing) paired with $`O(1)`$ Savelsbergh backward-pass time-window slack checks—implemented both in the C++20 gRPC solver and locally in the interactive TypeScript simulation.
 
 ---
 
