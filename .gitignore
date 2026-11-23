@@ -1,0 +1,186 @@
+# ==============================================================================
+# ChronosRoute Monorepo .gitignore
+# Polyglot Architecture: Python 3.12, Java 21, C++20, PostgreSQL/PostGIS, Redis
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Operating System & Editors
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# Editors & IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+*.bak
+
+# ------------------------------------------------------------------------------
+# Environment Variables, Secrets & Agent Files
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+**/GEMINI.md
+GEMINI.md
+.agents/
+chronos_route_engineering_blueprint.pdf
+
+# Frontend (Vite / Node)
+frontend/node_modules/
+frontend/dist/
+
+# ------------------------------------------------------------------------------
+# Python (Edge Ingestion & ML Pipeline)
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+develop-eggs/
+downloads/
+parts/
+var/
+*.log
+
+# ------------------------------------------------------------------------------
+# Java / Spring Boot / Maven / Gradle (Fleet Dispatch Orchestrator)
+# ------------------------------------------------------------------------------
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+.gradle/
+build/
+out/
+.mvn/wrapper/maven-wrapper.jar
+
+# ------------------------------------------------------------------------------
+# C++20 / CMake / Compilers (Parallel VRP Compute Engine)
+# ------------------------------------------------------------------------------
+services/solver-cpp/build/
+services/solver-cpp/cmake-build-*/
+services/solver-cpp/bin/
+services/solver-cpp/out/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+services/solver-cpp/build/Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+*.o
+*.obj
+*.dylib
+*.dll
+*.a
+*.lib
+*.gch
+*.pch
+*.d
+*.pdb
+*.ilk
+*.idb
+
+# ------------------------------------------------------------------------------
+# Protocol Buffers / gRPC Generated Code
+# (Generated artifacts during build; source remains in proto/)
+# ------------------------------------------------------------------------------
+services/ingestion-py/generated/
+services/orchestrator-java/src/main/java/com/chronosroute/proto/generated/
+services/solver-cpp/generated/
+*_pb2.py
+*_pb2.pyi
+*_pb2_grpc.py
+*.pb.cc
+*.pb.h
+*.grpc.pb.cc
+*.grpc.pb.h
+
+# ------------------------------------------------------------------------------
+# Machine Learning & Large Artifacts
+# ------------------------------------------------------------------------------
+*.onnx
+*.onnx.data
+*.bin
+*.pt
+*.pth
+*.joblib
+*.pkl
+# Keep directory structure tracked with .gitkeep
+!services/solver-cpp/models/.gitkeep
+!services/ingestion-py/models/.gitkeep
+
+# ------------------------------------------------------------------------------
+# Database, Local Volumes & Data Dumps
+# ------------------------------------------------------------------------------
+data/
+data/osm/
+data/osrm/
+data/postgres/
+data/redis/
+*.sql.gz
+*.dump
+*.csv
+*.parquet
+*.feather
+
+# ------------------------------------------------------------------------------
+# Benchmarks & Load Testing Artifacts
+# ------------------------------------------------------------------------------
+benchmarks/results/
+benchmarks/reports/
+.nyc_output
+coverage/
+*.flamegraph.svg
+*.prof

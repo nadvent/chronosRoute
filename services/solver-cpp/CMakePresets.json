@@ -1,0 +1,63 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "release",
+      "displayName": "Release Configuration",
+      "binaryDir": "${sourceDir}/build/release",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -march=native -DNDEBUG"
+      }
+    },
+    {
+      "name": "tsan",
+      "displayName": "ThreadSanitizer Configuration",
+      "binaryDir": "${sourceDir}/build/tsan",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-O2 -g -fsanitize=thread -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "Address & Undefined Behavior Sanitizer Configuration",
+      "binaryDir": "${sourceDir}/build/asan",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan"
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "release",
+      "configurePreset": "release"
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan"
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan"
+    }
+  ]
+}

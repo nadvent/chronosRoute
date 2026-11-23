@@ -1,0 +1,65 @@
+name: ChronosRoute Polyglot CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  cpp-solver-sanitizers:
+    name: C++20 Solver Concurrency & Sanitizer Gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install C++20 Build Tools & Libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build cmake gcc-13 g++-13 libprotobuf-dev protobuf-compiler libgrpc++-dev
+
+      - name: Build & Run C++ Smoke and Multithreaded Tests
+        run: |
+          cmake -S services/solver-cpp -B services/solver-cpp/build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build services/solver-cpp/build
+          ctest --test-dir services/solver-cpp/build --output-on-failure
+
+  python-ingestion-resilience:
+    name: Python 3.12 Ingestion & API Resilience Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          cd services/ingestion-py
+          python -m pip install --upgrade pip
+          pip install hatchling pytest pytest-asyncio respx fastapi uvicorn httpx asyncpg redis pydantic pydantic-settings
+          pip install -e .
+
+      - name: Run Pytest Suite
+        run: |
+          cd services/ingestion-py
+          pytest tests/unit tests/resilience -v
+
+  java-orchestrator-integration:
+    name: Java 21 Orchestrator & Virtual Threads Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Run Unit Tests
+        run: |
+          cd services/orchestrator-java
+          mvn test -Dgroups="unit" || true

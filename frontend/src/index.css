@@ -1,0 +1,105 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #05080f;
+    color: #f1f5f9;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hud-glass {
+    @apply bg-slate-950/80 backdrop-blur-xl border border-slate-700/60 shadow-hud;
+  }
+
+  .hud-glass-subtle {
+    @apply bg-slate-900/75 backdrop-blur-md border border-slate-800/80;
+  }
+
+  .hud-pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-slate-700/70 bg-slate-900/80 px-2.5 py-0.5 text-[11px] font-medium tracking-tight;
+  }
+
+  .hud-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(71, 85, 105, 0.65) transparent;
+  }
+
+  .hud-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .hud-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .hud-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(71, 85, 105, 0.65);
+    border-radius: 9999px;
+  }
+}
+
+/* Custom tactical range input styling */
+input[type='range'].chronos-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(51, 65, 85, 0.85);
+  outline: none;
+}
+
+input[type='range'].chronos-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #22d3ee;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+input[type='range'].chronos-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type='range'].chronos-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #22d3ee;
+  border: 2px solid #0f172a;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+  cursor: pointer;
+}
+
+/* Keep MapLibre attribution unobtrusive */
+.maplibregl-ctrl-attrib {
+  background: rgba(5, 8, 15, 0.65) !important;
+  color: rgba(148, 163, 184, 0.85) !important;
+  font-size: 10px !important;
+  backdrop-filter: blur(6px);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: rgba(148, 163, 184, 0.95) !important;
+}

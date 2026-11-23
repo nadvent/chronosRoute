@@ -1,0 +1,29 @@
+{
+  "queries": {
+    "nearest_couriers_gist": {
+      "max_cost": 25.0,
+      "max_execution_time_ms": 4.0,
+      "required_node_types": ["Bitmap Index Scan", "Index Scan"],
+      "banned_node_types": ["Seq Scan"]
+    },
+    "active_orders_covering": {
+      "max_cost": 15.0,
+      "max_execution_time_ms": 2.0,
+      "required_node_types": ["Index Only Scan"],
+      "banned_node_types": ["Seq Scan"],
+      "heap_fetches_allowed": 0
+    },
+    "pending_orders_partial": {
+      "max_cost": 10.0,
+      "max_execution_time_ms": 1.5,
+      "required_node_types": ["Bitmap Index Scan", "Index Scan"],
+      "banned_node_types": ["Seq Scan"]
+    },
+    "telemetry_partition_prune": {
+      "max_cost": 50.0,
+      "max_execution_time_ms": 5.0,
+      "required_node_types": ["Append"],
+      "banned_node_types": ["Seq Scan"]
+    }
+  }
+}

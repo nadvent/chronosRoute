@@ -1,0 +1,122 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: chronos_postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chronos_route
+      POSTGRES_USER: chronos
+      POSTGRES_PASSWORD: chronos_dev_password
+    ports:
+      - "5432:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "work_mem=32MB"
+      - "-c"
+      - "maintenance_work_mem=256MB"
+      - "-c"
+      - "effective_cache_size=1536MB"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "track_io_timing=on"
+      - "-c"
+      - "shared_preload_libraries=pg_stat_statements"
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronos -d chronos_route"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: chronos_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ingestion-py:
+    build:
+      context: ./services/ingestion-py
+      dockerfile: Dockerfile
+    container_name: chronos_ingestion
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_ASYNC_URL: postgresql://chronos:chronos_dev_password@postgres:5432/chronos_route
+      REDIS_URL: redis://redis:6379/0
+      ORCHESTRATOR_URL: http://orchestrator-java:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  solver-cpp:
+    build:
+      context: ./services/solver-cpp
+      dockerfile: Dockerfile
+    container_name: chronos_solver
+    restart: unless-stopped
+    environment:
+      CHRONOS_GRID_ORIGIN_LAT: "51.5074"
+      CHRONOS_GRID_ORIGIN_LON: "-0.1278"
+    ports:
+      - "50051:50051"
+
+  orchestrator-java:
+    build:
+      context: ./services/orchestrator-java
+      dockerfile: Dockerfile
+    container_name: chronos_orchestrator
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: chronos_route
+      POSTGRES_USER: chronos
+      POSTGRES_PASSWORD: chronos_dev_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SOLVER_GRPC_HOST: solver-cpp
+      SOLVER_GRPC_PORT: 50051
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      solver-cpp:
+        condition: service_started
+
+  webapp:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chronos_webapp
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - ingestion-py
+      - orchestrator-java
+
+volumes:
+  pgdata:
+  redisdata:

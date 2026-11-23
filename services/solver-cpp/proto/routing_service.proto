@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package chronos.routing.v1;
+
+option java_multiple_files = true;
+option java_package = "com.chronosroute.proto.v1";
+option java_outer_classname = "RoutingProto";
+
+// ============================================================================
+// Service Definition
+// ============================================================================
+
+service RoutingService {
+  // Solves the Capacitated Vehicle Routing Problem with Time Windows (CVRPTW)
+  rpc SolveCVRPTW (CVRPTWRequest) returns (CVRPTWResponse);
+
+  // Updates edge dynamic speed multipliers (weather, congestion) in CSR graph
+  rpc UpdateTrafficMultipliers (TrafficUpdateRequest) returns (TrafficUpdateResponse);
+
+  // Computes NxN asymmetric travel time & distance matrix using Landmark A* (ALT) / CH
+  rpc ComputeDistanceMatrix (MatrixRequest) returns (MatrixResponse);
+
+  // Health and engine capacity check
+  rpc CheckHealth (HealthRequest) returns (HealthResponse);
+}
+
+// ============================================================================
+// Geospatial & Domain Types
+// ============================================================================
+
+message GeoCoordinate {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+enum StopType {
+  STOP_TYPE_UNSPECIFIED = 0;
+  STOP_TYPE_PICKUP = 1;
+  STOP_TYPE_DROPOFF = 2;
+  STOP_TYPE_DEPOT = 3;
+}
+
+message DeliveryStop {
+  string stop_id = 1;
+  GeoCoordinate coordinate = 2;
+  int64 demand_kg = 3;
+  int64 window_start_unix = 4;       // Earliest allowed arrival (seconds)
+  int64 window_end_unix = 5;         // Latest allowed arrival before penalty
+  int64 service_duration_seconds = 6;
+  StopType stop_type = 7;
+  string paired_stop_id = 8;         // For pickup-before-dropoff precedence
+  int32 priority = 9;
+}
+
+message VehicleCapacity {
+  string vehicle_id = 1;
+  int64 max_weight_kg = 2;
+  int64 shift_start_unix = 3;
+  int64 shift_end_unix = 4;
+  GeoCoordinate start_location = 5;
+  GeoCoordinate end_location = 6;
+  int32 max_stops = 7;
+}
+
+// ============================================================================
+// Solver Request & Response
+// ============================================================================
+
+message SolverConstraints {
+  int64 deadline_ms = 1;             // Hard computation budget (e.g. 500 ms)
+  int32 num_search_trajectories = 2; // Concurrent ALNS threads
+  double late_penalty_per_second = 3;
+  bool allow_unassigned_stops = 4;
+}
+
+message CVRPTWRequest {
+  string request_id = 1;
+  repeated VehicleCapacity vehicles = 2;
+  repeated DeliveryStop stops = 3;
+  SolverConstraints constraints = 4;
+  
+  // Optional precomputed travel time matrix in milliseconds [N x N flattened]
+  repeated int64 precomputed_duration_matrix_ms = 5;
+  int32 matrix_dimension = 6;
+}
+
+message ScheduledStop {
+  string stop_id = 1;
+  int64 estimated_arrival_unix = 2;
+  int64 estimated_departure_unix = 3;
+  int64 slack_seconds = 4;
+  int64 accumulated_load_kg = 5;
+}
+
+message VehicleRoute {
+  string vehicle_id = 1;
+  repeated ScheduledStop scheduled_stops = 2;
+  int64 total_distance_meters = 3;
+  int64 total_duration_seconds = 4;
+  int64 total_wait_seconds = 5;
+  int64 total_penalty_cost = 6;
+  string encoded_polyline = 7;
+}
+
+enum SolverStatus {
+  SOLVER_STATUS_UNSPECIFIED = 0;
+  SOLVER_STATUS_OPTIMAL = 1;
+  SOLVER_STATUS_FEASIBLE = 2;
+  SOLVER_STATUS_TIMEOUT_BEST_EFFORT = 3;
+  SOLVER_STATUS_INFEASIBLE = 4;
+  SOLVER_STATUS_ERROR = 5;
+}
+
+message CVRPTWResponse {
+  string request_id = 1;
+  SolverStatus status = 2;
+  repeated VehicleRoute routes = 3;
+  repeated string unassigned_stop_ids = 4;
+  double objective_cost = 5;
+  int64 solver_duration_ms = 6;
+  int32 iterations_completed = 7;
+  string error_message = 8;
+}
+
+// ============================================================================
+// Traffic & Road Graph Updates
+// ============================================================================
+
+message EdgeSpeedMultiplier {
+  int64 edge_id = 1;
+  float speed_multiplier = 2;       // e.g. 0.65 for heavy rain / congestion
+}
+
+message TrafficUpdateRequest {
+  string batch_id = 1;
+  int64 timestamp_unix = 2;
+  repeated EdgeSpeedMultiplier edge_multipliers = 3;
+}
+
+message TrafficUpdateResponse {
+  string batch_id = 1;
+  bool success = 2;
+  int32 edges_updated = 3;
+  int64 update_latency_micros = 4;
+}
+
+// ============================================================================
+// Distance Matrix Computation
+// ============================================================================
+
+message MatrixRequest {
+  string matrix_id = 1;
+  repeated GeoCoordinate origins = 2;
+  repeated GeoCoordinate destinations = 3;
+}
+
+message MatrixResponse {
+  string matrix_id = 1;
+  int32 rows = 2;
+  int32 cols = 3;
+  repeated int64 durations_ms = 4;    // Flattened row-major matrix
+  repeated int64 distances_meters = 5;
+}
+
+// ============================================================================
+// Health Checking
+// ============================================================================
+
+message HealthRequest {
+  string client_id = 1;
+}
+
+message HealthResponse {
+  bool healthy = 1;
+  int32 active_workers = 2;
+  int64 total_solved_requests = 3;
+  double average_solve_duration_ms = 4;
+  int64 graph_nodes_count = 5;
+  int64 graph_edges_count = 6;
+}

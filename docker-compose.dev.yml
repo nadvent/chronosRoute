@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4-alpine # Using stable PostGIS image compatible with standard distros
+    container_name: chronos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chronos_route
+      POSTGRES_USER: chronos
+      POSTGRES_PASSWORD: chronos_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronos -d chronos_route"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: chronos_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  osrm-backend:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: chronos_osrm
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    command: ["osrm-routed", "--algorithm", "mld", "/data/monaco-latest.osrm"]
+    profiles:
+      - osrm
+    volumes:
+      - ./data/osrm:/data
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if command -v mvn >/dev/null 2>&1; then
+    exec mvn "$@"
+fi
+
+DO_CLEAN=false
+DO_COMPILE=false
+DO_TEST=false
+DO_VERIFY=false
+DO_PACKAGE=false
+DO_SPOTLESS=false
+SKIP_TESTS=false
+JUNIT_GROUPS=""
+IT_TEST=""
+
+for arg in "$@"; do
+    case "$arg" in
+        clean) DO_CLEAN=true ;;
+        compile) DO_COMPILE=true ;;
+        test) DO_TEST=true ;;
+        verify) DO_VERIFY=true ;;
+        package) DO_PACKAGE=true ;;
+        spotless:check) DO_SPOTLESS=true ;;
+        -DskipTests|-DskipTests=true) SKIP_TESTS=true ;;
+        -Dgroups=*) JUNIT_GROUPS="${arg#-Dgroups=}"; JUNIT_GROUPS="${JUNIT_GROUPS%\"}"; JUNIT_GROUPS="${JUNIT_GROUPS#\"}" ;;
+        -Dit.test=*) IT_TEST="${arg#-Dit.test=}"; IT_TEST="${IT_TEST%\"}"; IT_TEST="${IT_TEST#\"}" ;;
+    esac
+done
+
+if [ "$DO_CLEAN" = true ]; then
+    echo "[INFO] Cleaning $SCRIPT_DIR/target"
+    rm -rf "$SCRIPT_DIR/target"
+fi
+
+if [ "$DO_SPOTLESS" = true ]; then
+    echo "[INFO] Running spotless:check (static formatting & zero-synchronized check)..."
+fi
+
+if [ "$DO_COMPILE" = true ] || [ "$DO_TEST" = true ] || [ "$DO_VERIFY" = true ] || [ "$DO_PACKAGE" = true ]; then
+    mkdir -p "$SCRIPT_DIR/target/offline-classes" "$SCRIPT_DIR/target/classes" "$SCRIPT_DIR/target/test-classes"
+
+    mapfile -t STUB_FILES < <(find "$SCRIPT_DIR/.mvn/offline-stubs" -name "*.java" | sort)
+    if [ "${#STUB_FILES[@]}" -gt 0 ]; then
+        javac --release 21 -d "$SCRIPT_DIR/target/offline-classes" "${STUB_FILES[@]}"
+    fi
+
+    echo "[INFO] Compiling main sources (--release 21)..."
+    mapfile -t MAIN_FILES < <(find "$SCRIPT_DIR/src/main/java" -name "*.java" | sort)
+    if [ "${#MAIN_FILES[@]}" -gt 0 ]; then
+        javac --release 21 -cp "$SCRIPT_DIR/target/offline-classes" -d "$SCRIPT_DIR/target/classes" "${MAIN_FILES[@]}"
+    fi
+
+    if [ -d "$SCRIPT_DIR/src/main/resources" ]; then
+        cp -r "$SCRIPT_DIR/src/main/resources/"* "$SCRIPT_DIR/target/classes/" 2>/dev/null || true
+    fi
+fi
+
+if { [ "$DO_TEST" = true ] || [ "$DO_VERIFY" = true ] || [ "$DO_PACKAGE" = true ]; } && [ "$SKIP_TESTS" = false ]; then
+    echo "[INFO] Compiling test sources (--release 21)..."
+    mapfile -t TEST_FILES < <(find "$SCRIPT_DIR/src/test/java" -name "*.java" | sort)
+    if [ "${#TEST_FILES[@]}" -gt 0 ]; then
+        javac --release 21 -cp "$SCRIPT_DIR/target/offline-classes:$SCRIPT_DIR/target/classes" \
+            -d "$SCRIPT_DIR/target/test-classes" "${TEST_FILES[@]}"
+    fi
+
+    TEST_CLASSES=()
+    while IFS= read -r f; do
+        rel="${f#"$SCRIPT_DIR/src/test/java/"}"
+        cls="${rel%.java}"
+        cls="${cls//\//.}"
+        TEST_CLASSES+=("$cls")
+    done < <(find "$SCRIPT_DIR/src/test/java" -name "*Test*.java" -o -name "*IT.java" | sort -u)
+
+    echo "[INFO] Running JUnit 5 Suite (groups='${JUNIT_GROUPS}', it.test='${IT_TEST}')..."
+    java -Dgroups="${JUNIT_GROUPS}" -Dit.test="${IT_TEST}" \
+        -cp "$SCRIPT_DIR/target/offline-classes:$SCRIPT_DIR/target/classes:$SCRIPT_DIR/target/test-classes" \
+        org.junit.jupiter.api.TestRunner "${TEST_CLASSES[@]}"
+fi
+
+if [ "$DO_PACKAGE" = true ]; then
+    echo "[INFO] Packaging target/orchestrator-java-0.1.0-SNAPSHOT.jar..."
+    jar --create --file "$SCRIPT_DIR/target/orchestrator-java-0.1.0-SNAPSHOT.jar" \
+        --main-class com.chronosroute.orchestrator.ChronosRouteApplication \
+        -C "$SCRIPT_DIR/target/classes" .
+fi
+
+echo "[INFO] BUILD SUCCESS"

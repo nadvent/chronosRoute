@@ -1,0 +1,50 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: orchestrator-java
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:chronos_route}
+    username: ${POSTGRES_USER:chronos}
+    password: ${POSTGRES_PASSWORD:chronos_dev_password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 32
+      minimum-idle: 0
+      initialization-fail-timeout: -1
+      connection-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        boot:
+          allow_jdbc_metadata_access: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+chronos:
+  solver:
+    host: ${SOLVER_GRPC_HOST:localhost}
+    port: ${SOLVER_GRPC_PORT:50051}
+    deadline-ms: 450
